@@ -3,9 +3,7 @@
 #include <string>       // string, stoi
 #include <string_view>  // string_view
 #include <chrono>       // high_resolution_clock, duration_cast, nanoseconds
-#include <sstream>      // stringstream
-
-// подключаем вашу структуру данных
+#include <sstream>
 #include "data_structure.hpp"
 
 using namespace std;
@@ -13,53 +11,74 @@ using namespace itis;
 
 // абсолютный путь до набора данных и папки проекта
 static constexpr auto kDatasetPath = string_view{PROJECT_DATASET_DIR};
-static constexpr auto kProjectPath = string_view{PROJECT_SOURCE_DIR};
 
-int main(int argc, char **argv) {
-
-  // Tip 1: входные аргументы позволяют более гибко контролировать работу вашей программы.
-  // Можете передать путь до входного/выходного тестового файла в качестве аргумента программы.
-
-  for (int index = 0; index < argc; index++) {
-    cout << "Arg: " << argv[index] << '\n';
-  }
-
-  // Tip 2: для перевода строки в число можете использовать функцию stoi (string to integer)
-
-  // можете использовать функционал класса stringstream для обработки строки
-  auto ss = stringstream("0 1 2");  // передаете строку (входной аргумент или строку из файла) и обрабатываете ее
-
-  int number = 0;
-  ss >> number;  // number = 0
-  ss >> number;  // number = 1
-  ss >> number;  // number = 2
-
-  // работа с набором данных
+int main() {
+  /* Так-то тестовые данные уже сгенерированы, но если нужны новые, то переходим в dataset, удаляем три папочки:
+   * insert, remove и search. Переходим в  generate_csv_dataset.py, нажимаем на зеленую стрелочку. Оп, появились.
+   * Если не нужны, то смотрим ниже.
+   */
   const auto path = string(kDatasetPath);
   cout << "Path to the 'dataset/' folder: " << path << endl;
 
-  auto input_file = ifstream(path + "/dataset-example.csv");
 
-  if (input_file) {
-    // чтение и обработка набора данных ...
+  itis::Point points[100] = {};
+
+  string abs_coords;
+  string ord_coords;
+
+  // Чтение файла
+  auto input_file_x = ifstream(path + "/abs/data(100).txt");
+  auto input_file_y = ifstream(path + "/ord/data(100).txt");
+
+
+  if (input_file_x && input_file_y) {
+
+    //извлекаем все данные из файла и записываем в строку (это второй аргумент)
+    getline(input_file_x, abs_coords);
+    getline(input_file_y, ord_coords);
+
+    string x_coord;
+    string y_coord;
+
+    // делаем из строки стрим
+    istringstream str_x(abs_coords);
+    istringstream str_y(ord_coords);
+
+    int count = 0;
+
+    //сплитим строку и записываем в массив числа, полученные из строки
+    while (getline(str_x, x_coord, ' ') && getline(str_y, y_coord, ' ')) {
+      points[count] = {stoi(x_coord), stoi(y_coord)};
+      count++;
+    }
+  }
+  //закрытие стрима
+  input_file_x.close();
+  input_file_y.close();
+
+  //создаем файл с замерами времени
+  ofstream out(path + "/answer(100).txt", ios::app);
+
+  //здесь происходят замеры времени и запись в файлик
+  for(int i = 0; i < 10; i++) {
+    
+    const auto time_point_before = chrono::steady_clock::now();
+    int n = sizeof(points) / sizeof(points[0]);
+
+    convexHull(points, n);
+
+    const auto time_point_after = chrono::steady_clock::now();
+    const auto time_diff = time_point_after - time_point_before;
+    const long time_elapsed_ns = chrono::duration_cast<chrono::nanoseconds>(time_diff).count();
+
+
+    if(out.is_open()){
+      out<<time_elapsed_ns<<endl;
+    }
   }
 
-  // Контрольный тест: операции добавления, удаления, поиска и пр. над структурой данных
-
-  // Tip 3: время работы программы (или участка кода) можно осуществить
-  // как изнутри программы (std::chrono), так и сторонними утилитами
-
-  const auto time_point_before = chrono::steady_clock::now();
-
-  // здесь находится участок кода, время которого необходимо замерить
-
-  const auto time_point_after = chrono::steady_clock::now();
-
-  // переводим время в наносекунды
-  const auto time_diff = time_point_after - time_point_before;
-  const auto time_elapsed_ns = chrono::duration_cast<chrono::nanoseconds>(time_diff).count();
-
-  cout << "Time elapsed (ns): " << time_elapsed_ns << '\n';
-
+  //эта хрень нужна, чтобы при повторном запуске можно было разделять старые и новые данные
+  out<<"----------------------------------"<<endl;
+  out.close();
   return 0;
 }
