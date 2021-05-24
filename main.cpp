@@ -14,5 +14,5 @@ int main() {
     cout << "The points in the convex hull are: \n";
     convexHull(points, n);
     return 0;
-
+    // Хей, красавчик, нужны тесты? Прихоти к нам в benchmark/demo_benchmark.cpp
 }
